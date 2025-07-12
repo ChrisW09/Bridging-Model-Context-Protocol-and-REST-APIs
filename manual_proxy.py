@@ -1,43 +1,6 @@
 """
-Manual MCP Proxy Implementation
-This file demonstrates how to manually bridge HTTP requests to MCP (Model Context Protocol) calls.
-"""
-
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import requests
-import json
-import logging
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Create the FastAPI app
-app = FastAPI(
-    title="Manual MCP Proxy",
-    description="Manual FastAPI implementation showing how to bridge HTTP to MCP",
-    version="1.0.0"
-)
-
-# Our MCP backend server URL
-MCP_SERVER_URL = "http://127.0.0.1:8001/mcp/"
-
-# Request models for better API documentation
-class CurrencyRequest(BaseModel):
-    amount: float
-    from_currency: str
-    to_currency: str
-
-class TextRequest(BaseModel):
-    text: str
-
-class CalculateRequest(BaseModel):
-    expression: str
-
-"""
-Manual MCP Proxy Implementation
-=====================================
+Manual MCP Proxy Implementation (Educational)
+=============================================
 
 This file demonstrates how to manually bridge HTTP requests to MCP (Model Context Protocol) calls.
 
@@ -213,6 +176,8 @@ def root():
     """Root endpoint showing available endpoints."""
     return {
         "message": "Manual MCP Proxy is running",
+        "purpose": "Educational demonstration of MCP protocol",
+        "limitation": "Session management is simplified - use FastMCP proxy for production",
         "endpoints": {
             "health": "GET /health",
             "currency_converter": "POST /currency_converter",
@@ -292,18 +257,17 @@ def health_check():
             "status": "healthy" if response.status_code == 200 else "degraded",
             "mcp_backend": "connected" if response.status_code == 200 else "disconnected",
             "backend_url": MCP_SERVER_URL,
-            "proxy_type": "manual_fastapi"
+            "proxy_type": "manual_fastapi_educational"
         }
     except Exception as e:
         return {
             "status": "unhealthy",
             "mcp_backend": "disconnected",
             "backend_url": MCP_SERVER_URL,
-            "proxy_type": "manual_fastapi",
+            "proxy_type": "manual_fastapi_educational",
             "error": str(e)
         }
 
-# For running with uvicorn manually
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting Manual MCP Proxy server...")
