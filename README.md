@@ -1,142 +1,208 @@
 
-# 🛰️ Exposing MCP Tools as Classic HTTP Endpoints
+# MCP Proxy Implementation Examples
 
-A reference implementation for bridging Model Context Protocol (MCP) with classic REST APIs, as described in [this Medium article](https://medium.com/@YOUR-ARTICLE-LINK).
+This repository demonstrates two approaches to bridging HTTP APIs with Model Context Protocol (MCP) servers:
 
-This repo provides:
-- A proxy server exposing MCP tools over HTTP with [FastMCP](https://github.com/jlowin/fastmcp)
-- A manual FastAPI adapter for a handful of MCP tools
-- Example requests and detailed explanation
+1. **Production Approach**: Using FastMCP library (`proxy_server.py`)
+2. **Educational Approach**: Manual implementation (`manual_proxy.py`)
 
----
+## Quick Start
 
-## 🚦 What is MCP?
-
-MCP (Model Context Protocol) is a protocol designed for **function-style, tool-centric AI and agent orchestration**—not just for reading/writing database resources. MCP calls often use HTTP as a transport but are organized around invoking tools and models, not resource URLs.
-
----
-
-## 📊 Architecture
-
-```
-[ REST API Client ]
-      |
-      v
-[ Proxy Server (FastMCP or FastAPI) ]
-      |
-      v
-[ MCP Server ]
-```
-
----
-
-## ⚡ Quick Start
-
-### 1. Clone this repo
-
-```bash
-git clone https://github.com/YOUR-USERNAME/mcp-http-proxy-example.git
-cd mcp-http-proxy-example
-```
-
-### 2. Install dependencies
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Start the MCP backend server
+### 2. Start the MCP Backend Server
 
 ```bash
 python mcp_backend_server.py
 ```
-- Real MCP server built with FastMCP framework on port 8001
-- Implements proper MCP tools: `currency_converter`, `summarize_text`, `calculate`
-- Full MCP protocol support with JSON-RPC
 
-### 4. Run the FastMCP proxy server
+This starts a real MCP server on port 8001 with three tools:
+- `currency_converter`: Converts between currencies
+- `summarize_text`: Summarizes text content
+- `calculate`: Evaluates mathematical expressions
+
+### 3. Choose Your Proxy Approach
+
+#### Option A: Production FastMCP Proxy (Recommended)
 
 ```bash
 python proxy_server.py
 ```
-- **Proper MCP Proxy**: Built with FastMCP's `ProxyClient` following [official documentation](https://gofastmcp.com/servers/proxy)
-- **Full MCP Protocol**: Supports JSON-RPC 2.0 with session isolation and advanced MCP features
-- **Session Management**: Each request gets isolated backend sessions for safe concurrency
-- **Transport Bridging**: Connects to MCP backend on port 8001, exposes via HTTP on port 8080
-- **Endpoint**: `http://127.0.0.1:8080/mcp/` (requires proper MCP client with JSON-RPC)
 
-### 5. Test the implementation
+This starts a FastMCP-based proxy on port 8080 that properly handles MCP sessions.
+
+#### Option B: Educational Manual Proxy
+
+```bash
+uvicorn manual_proxy:app --host 127.0.0.1 --port 9000
+```
+
+This starts a manual FastAPI implementation on port 9000 that demonstrates MCP protocol concepts but has session management limitations.
+
+## Testing the Implementations
+
+### Test the FastMCP Proxy (Production)
+
+The FastMCP proxy exposes the full MCP protocol at `/mcp/`:
+
+```bash
+# Initialize MCP session
+curl -X POST http://127.0.0.1:8080/mcp/ \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "initialize",
+    "id": "init",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {},
+      "clientInfo": {"name": "test-client", "version": "1.0"}
+    }
+  }'
+```
+
+For tool calls, you would need proper MCP session management. See `test_mcp_proxy.py` for examples.
+
+### Test the Manual Proxy (Educational)
+
+The manual proxy exposes simplified HTTP endpoints:
+
+```bash
+# Check health
+curl http://127.0.0.1:9000/health
+
+# Try currency conversion (will show educational error)
+curl -X POST http://127.0.0.1:9000/currency_converter \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 100, "from_currency": "USD", "to_currency": "EUR"}'
+```
+
+The manual proxy demonstrates the MCP protocol structure but has limitations with session management, providing educational error messages that point to the correct solution.
+
+### Run the Test Script
 
 ```bash
 python test_mcp_proxy.py
 ```
 
----
+This script demonstrates proper MCP protocol usage with both the backend and proxy.
 
-## 🧩 Example Usage
+## Architecture Overview
 
-**Testing the FastMCP Proxy:**
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   HTTP Client   │───▶│   Proxy Server  │───▶│  MCP Backend    │
+│                 │    │                 │    │   Server        │
+│ (curl, browser, │    │ • FastMCP       │    │                 │
+│  mobile app)    │    │ • Manual Impl   │    │ • FastMCP       │
+└─────────────────┘    └─────────────────┘    │ • 3 Tools       │
+                                              └─────────────────┘
+```
+
+### Components
+
+- **`mcp_backend_server.py`**: Real MCP server using FastMCP framework
+- **`proxy_server.py`**: Production-ready proxy using FastMCP's ProxyClient
+- **`manual_proxy.py`**: Educational manual implementation showing MCP protocol concepts
+- **`test_mcp_proxy.py`**: Test script demonstrating proper MCP protocol usage
+
+## Key Differences
+
+| Aspect | FastMCP Proxy | Manual Proxy |
+|--------|---------------|--------------|
+| **Purpose** | Production use | Educational/Learning |
+| **Session Management** | ✅ Full support | ❌ Limited (educational errors) |
+| **MCP Compliance** | ✅ Complete | ⚠️ Partial (protocol demo) |
+| **Endpoints** | `/mcp/` (full protocol) | Individual tool endpoints |
+| **Error Handling** | Robust | Educational messages |
+| **Performance** | Optimized | Basic |
+
+## Educational Value
+
+The manual proxy demonstrates:
+- MCP JSON-RPC protocol structure
+- Session initialization attempts
+- Server-Sent Events (SSE) parsing
+- Error handling patterns
+- Why proper MCP client libraries are needed
+
+When you test the manual proxy, it shows realistic error messages that explain the limitations and point to the production solution.
+
+## Step-by-Step Testing Guide
+
+### 1. Start All Servers
 
 ```bash
+# Terminal 1: Start MCP backend
+python mcp_backend_server.py
+
+# Terminal 2: Start FastMCP proxy  
+python proxy_server.py
+
+# Terminal 3: Start manual proxy
+uvicorn manual_proxy:app --host 127.0.0.1 --port 9000
+
+# Terminal 4: Run tests
 python test_mcp_proxy.py
 ```
 
-**Proper MCP JSON-RPC Protocol (for FastMCP Proxy):**
+### 2. Test Individual Components
 
+**Test MCP Backend Health:**
 ```bash
-# Initialize session
+curl -X POST http://127.0.0.1:8001/mcp/ \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "method": "initialize", "id": "init", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}'
+```
+
+**Test FastMCP Proxy:**
+```bash
 curl -X POST http://127.0.0.1:8080/mcp/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc": "2.0", "method": "initialize", "id": "init", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0"}}}'
+  -d '{"jsonrpc": "2.0", "method": "initialize", "id": "init", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}'
+```
 
-# Call a tool (requires session management)
-curl -X POST http://127.0.0.1:8080/mcp/ \
+**Test Manual Proxy:**
+```bash
+# Health check
+curl http://127.0.0.1:9000/health
+
+# Educational tool call (shows limitation)
+curl -X POST http://127.0.0.1:9000/currency_converter \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc": "2.0", "method": "tools/call", "id": "call-1", "params": {"name": "currency_converter", "arguments": {"amount": 100, "from_currency": "USD", "to_currency": "EUR"}}}'
+  -d '{"amount": 100, "from_currency": "USD", "to_currency": "EUR"}'
 ```
 
----
+## Running Ports Summary
 
-## 📁 File Structure
+- **Port 8001**: MCP Backend Server
+- **Port 8080**: FastMCP Proxy (Production)
+- **Port 9000**: Manual Proxy (Educational)
 
-```
-.
-├── proxy_server.py        # FastMCP proxy server (proper MCP implementation)
-├── mcp_backend_server.py  # Real MCP backend server with FastMCP
-├── test_mcp_proxy.py      # Test script demonstrating MCP protocol
-├── requirements.txt
-└── README.md
-```
+## Files Overview
 
----
+- `mcp_backend_server.py` - Real MCP backend with three tools
+- `proxy_server.py` - Production FastMCP proxy implementation
+- `manual_proxy.py` - Educational manual proxy implementation
+- `test_mcp_proxy.py` - Test script showing proper MCP protocol usage
+- `requirements.txt` - Python dependencies
 
-## 📝 Details
+## Key Learnings
 
-### proxy_server.py
+1. **MCP requires session management**: The protocol is stateful, not stateless like REST
+2. **FastMCP simplifies complexity**: Use proven libraries for production
+3. **Manual implementation has value**: Understanding the protocol helps with debugging
+4. **Proper error handling matters**: Educational errors help developers learn
 
-**Proper FastMCP Proxy Implementation** following the [official FastMCP documentation](https://gofastmcp.com/servers/proxy):
-- Uses `ProxyClient` for automatic session isolation and full MCP feature support
-- Implements transport bridging (connects to MCP backend, exposes via HTTP)
-- Forwards advanced MCP features (sampling, elicitation, logging, progress)
-- Safe concurrent request handling with isolated backend sessions
-- Full JSON-RPC 2.0 MCP protocol compliance
+## References
 
-### mcp_backend_server.py
-
-**Real MCP Server** built with FastMCP framework:
-- Implements proper MCP tools: `currency_converter`, `summarize_text`, `calculate`
-- Full MCP protocol support with automatic tool discovery
-- Can be used with any MCP client (Claude Desktop, custom clients, etc.)
-- Demonstrates proper FastMCP server development patterns
-
-### mock_mcp_backend.py (for local testing)
-
-Run this script to start a dummy MCP backend on `localhost:8000`.
-
----
-
-## 📝 License
-
-MIT
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [FastMCP Documentation](https://gofastmcp.com/)
+- [FastMCP Proxy Guide](https://gofastmcp.com/servers/proxy)
