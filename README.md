@@ -45,42 +45,56 @@ cd mcp-http-proxy-example
 pip install -r requirements.txt
 ```
 
-### 3. Start (or mock) your MCP backend server
-
-You can use your own MCP server or mock one using FastAPI for testing:
+### 3. Start the MCP backend server
 
 ```bash
-uvicorn mock_mcp_backend:app --reload --port 8000
+python mcp_backend_server.py
 ```
+- Real MCP server built with FastMCP framework on port 8001
+- Implements proper MCP tools: `currency_converter`, `summarize_text`, `calculate`
+- Full MCP protocol support with JSON-RPC
 
-### 4. Run the FastMCP proxy
+### 4. Run the FastMCP proxy server
 
 ```bash
 python proxy_server.py
 ```
-- This exposes all MCP tools over HTTP at `http://localhost:8080/mcp`.
+- **Proper MCP Proxy**: Built with FastMCP's `ProxyClient` following [official documentation](https://gofastmcp.com/servers/proxy)
+- **Full MCP Protocol**: Supports JSON-RPC 2.0 with session isolation and advanced MCP features
+- **Session Management**: Each request gets isolated backend sessions for safe concurrency
+- **Transport Bridging**: Connects to MCP backend on port 8001, exposes via HTTP on port 8080
+- **Endpoint**: `http://127.0.0.1:8080/mcp/` (requires proper MCP client with JSON-RPC)
 
-### 5. Run the manual FastAPI adapter (optional)
+### 5. Test the implementation
 
 ```bash
-uvicorn manual_proxy:app --reload --port 9000
+python test_mcp_proxy.py
 ```
-- This exposes `/currency_converter` and `/summarize_text` for demo at `http://localhost:9000/`.
 
 ---
 
-## 🧩 Example HTTP Requests
+## 🧩 Example Usage
 
-**With FastMCP Proxy:**
+**Testing the FastMCP Proxy:**
 
 ```bash
-curl -X POST http://localhost:8080/mcp   -H "Content-Type: application/json"   -d '{"tool": "currency_converter", "inputs": {"amount": 100, "from_currency": "USD", "to_currency": "EUR"}}'
+python test_mcp_proxy.py
 ```
 
-**With Manual Adapter:**
+**Proper MCP JSON-RPC Protocol (for FastMCP Proxy):**
 
 ```bash
-curl -X POST "http://localhost:9000/currency_converter?amount=100&from_currency=USD&to_currency=EUR"
+# Initialize session
+curl -X POST http://127.0.0.1:8080/mcp/ \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "method": "initialize", "id": "init", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0"}}}'
+
+# Call a tool (requires session management)
+curl -X POST http://127.0.0.1:8080/mcp/ \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "method": "tools/call", "id": "call-1", "params": {"name": "currency_converter", "arguments": {"amount": 100, "from_currency": "USD", "to_currency": "EUR"}}}'
 ```
 
 ---
@@ -89,11 +103,10 @@ curl -X POST "http://localhost:9000/currency_converter?amount=100&from_currency=
 
 ```
 .
-├── proxy_server.py        # FastMCP proxy server example
-├── manual_proxy.py        # Manual FastAPI adapter example
-├── mock_mcp_backend.py    # (Optional) Mock MCP backend for local testing
+├── proxy_server.py        # FastMCP proxy server (proper MCP implementation)
+├── mcp_backend_server.py  # Real MCP backend server with FastMCP
+├── test_mcp_proxy.py      # Test script demonstrating MCP protocol
 ├── requirements.txt
-├── .gitignore
 └── README.md
 ```
 
@@ -103,11 +116,20 @@ curl -X POST "http://localhost:9000/currency_converter?amount=100&from_currency=
 
 ### proxy_server.py
 
-Uses FastMCP's `as_proxy` to automatically expose all backend tools over a single HTTP endpoint. Great for production, auto-discovery, and minimizing boilerplate.
+**Proper FastMCP Proxy Implementation** following the [official FastMCP documentation](https://gofastmcp.com/servers/proxy):
+- Uses `ProxyClient` for automatic session isolation and full MCP feature support
+- Implements transport bridging (connects to MCP backend, exposes via HTTP)
+- Forwards advanced MCP features (sampling, elicitation, logging, progress)
+- Safe concurrent request handling with isolated backend sessions
+- Full JSON-RPC 2.0 MCP protocol compliance
 
-### manual_proxy.py
+### mcp_backend_server.py
 
-A FastAPI example showing how to manually bridge specific HTTP endpoints to your MCP backend. Great for custom logic, demos, or when only a few tools are needed.
+**Real MCP Server** built with FastMCP framework:
+- Implements proper MCP tools: `currency_converter`, `summarize_text`, `calculate`
+- Full MCP protocol support with automatic tool discovery
+- Can be used with any MCP client (Claude Desktop, custom clients, etc.)
+- Demonstrates proper FastMCP server development patterns
 
 ### mock_mcp_backend.py (for local testing)
 
