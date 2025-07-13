@@ -1,5 +1,12 @@
 # MCP Proxy Implementation: Bridging HTTP and Model Context Protocol
 
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![FastMCP](https://img.shields.io/badge/FastMCP-Compatible-green.svg)](https://gofastmcp.com/)
+[![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05-orange.svg)](https://spec.modelcontextprotocol.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-red.svg)](https://fastapi.tiangolo.com/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 This repository demonstrates comprehensive approaches to bridging HTTP APIs with the Model Context Protocol (MCP), providing both production-ready solutions and educational examples for understanding MCP integration patterns.
 
 ## 🎯 Overview
